@@ -1,21 +1,16 @@
-// import add from './math'
-// import main, {add, subtract} from './math'
-// console.log(add(1,2))
-// console.log(subtract(1,2))
-// main()
-
 const mashable = 'http://mashable.com/stories.json'
 const reddit = 'https://www.reddit.com/top.json'
 const digg = 'http://digg.com/api/news/popular.json'
 const buzz = 'https://www.buzzfeed.com/tech.xml'
 const ladbible = 'https://newsapi.org/v1/articles?source=the-lad-bible&sortBy=top&apiKey=5d6f2f0be20c453aad6143b4bce21b81'
-const wtf = 'http://thedailywtf.com/api/articles/recent/20'
+const wtf = 'http://thedailywtf.com/api/articles/recent/10'
 
 const app = document.querySelector('#app')
 let mysteryNumber = 0
 
 const state = {
-  source: 'mashable',
+  // source: 'mashable',
+  source: ['mashable', 'digg', 'wtf'],
   articles: [{
     image: '',
     title: '',
@@ -23,6 +18,7 @@ const state = {
     impressions: '',
     summary: '',
     link: '',
+    time: 0,
   }],
   popupHidden: false,
   loader: false,
@@ -49,29 +45,41 @@ function fetchMashableArticles() {
           theme: article.channel,
           impressions: article.formatted_shares,
           summary: article.excerpt,
-          link: article.short_url
+          link: article.short_url,
+          time: article.post_date
+//"2017-05-21T04:43:36+00:00"
         }
       })
     })
-}
-function fetchLadArticles() {
-  return fetchUrl(ladbible)
-    .then(res => res.json())
-    .then(data => {
-      console.log(data)
-      return data.articles.map(article => {
-        return {
-          image: article.urlToImage,
-          title: article.title,
-          theme: 'N/A',
-          impressions: 'N/A',
-          summary: article.description,
-          link: article.url
-        }
-      })
+    .catch(err => {
+      console.log('Error: ', err)
+      window.alert('Feed corrupted. Try another one.')
     })
 }
 
+function fetchDiggArticles() {
+  return fetchUrl(digg)
+    .then(res => res.json())
+    .then(data => {
+      console.log('buzz', data)
+      return data.data.feed.map(article => {
+        return {
+          image: article.content.media.images[3].url,
+          title: article.content.title,
+          theme: article.content.tags[0].display_name,
+          impressions: article.digg_score,
+          summary: article.content.description,
+          link: article.content.url,
+          time: article.date_published
+//date_published; 1495208160
+        }
+      })
+    })
+    .catch(err => {
+      console.log('Error: ', err)
+      window.alert('Feed corrupted. Try another one.')
+    })
+}
 function fetchWTFArticles() {
   return fetchUrl(wtf)
     .then(res => res.json())
@@ -84,34 +92,65 @@ function fetchWTFArticles() {
           theme: article.Series.Title,
           impressions: article.CachedCommentCount,
           summary: article.SummaryHtml,
-          link: article.Url
+          link: article.Url,
+          time: article.PublishedDate
+        //PublishedDate:"/Date(1495188000000)/"
         }
       })
+    })
+    .catch(err => {
+      console.log('Error: ', err)
+      window.alert('Feed corrupted. Try another one.')
     })
 }
 
 function fetchArticles(source) {
   if (source === 'mashable') {
     return fetchMashableArticles()
-  } else if (source ==='ladbible') {
-    return fetchLadArticles()
-  } else if (source ==='wtf') {
+  // } else if (source === 'ladbible') {
+  //   return fetchLadArticles()
+  } else if (source === 'wtf') {
     return fetchWTFArticles()
+  } else if (source === 'digg') {
+    return fetchDiggArticles()
   }
 }
 
-fetchArticles(state.source)
-  .then(articles => {
-    state.articles = articles
-    state.popupHidden = true
-  })
-  .then(() => console.log(state))
-  .then(() => render(app, state))
-  .catch(err => {
-    console.log(err)
-    window.alert('Feed not available. Try another one.')
-  })
+//Original mashable default
+// fetchArticles(state.source)
+//   .then(articles => {
+//     state.articles = articles
+//     state.popupHidden = true
+//   })
+//   .then(() => console.log(state))
+//   .then(() => render(app, state))
+//   .catch(err => {
+//     console.log(err)
+//     window.alert('Feed not available. Try another one.')
+//   })
 
+// Merge all feeds into one main feed in chronological order for the initial
+//    view. When the user clicks/taps the "Feedr" logo at the top, they should be
+//    return to this feed. This will be the new "home view."
+
+state.source.forEach(feed => {
+  fetchArticles(feed)
+    .then(articles => {
+      state.articles.push(articles)
+      //       let myNewArray = state.articles.reduce(function(prev, curr) {
+      //   return prev.concat(curr);
+      // });
+      state.articles = [].concat(...state.articles)
+      state.popupHidden = true
+    })
+    .then(() => console.log(state))
+    .then(() => render(app, state))
+    .catch(err => {
+      console.log(err)
+      window.alert('Feed not available. Try another one.')
+    })
+})
+// state.megaMerge = state.articles[1].concat(state.articles[2], state.articles[3])
 function renderArticles(articles) {
   return articles.map(article => `
     <article class="article">
@@ -140,7 +179,7 @@ function render(container, data) {
           <li><a href="#">News Source: <span>Source Name</span></a>
             <ul id="source">
                 <li><a href="#">Mashable</a></li>
-                <li><a href="#">LadBible</a></li>
+                <li><a href="#">Digg</a></li>
                 <li><a href="#">WTF</a></li>
             </ul>
           </li>
@@ -183,6 +222,7 @@ delegate('#app', 'click', '.articleContent a', event => {
   state.loader = false
   state.popupHidden = false
   render(app, state)
+  //TODO fix css so popup shows in window
 })
 
 //Add functionality to hide the pop-up when user selects the "X" button on the pop-up.
@@ -195,14 +235,26 @@ delegate('#app', 'click', 'a.closePopUp', event => {
 //Clicking/tapping the "Feedr" logo will display the main/default feed.
 delegate('#app', 'click', 'section.container h1', event => {
   event.preventDefault()
-  state.source = 'mashable'
-  fetchArticles(state.source) //WET wrap in fetchAndRender?
-    .then(articles => {
-      state.articles = articles
-      state.popupHidden = true
-    })
-    .then(() => console.log(state))
-    .then(() => render(app, state))
+  state.popupHidden = false
+  state.loader = true
+  render(app, state)
+  state.source = ['mashable', 'digg', 'wtf'] //Why is this necessary??
+  state.articles = []
+  //WET
+  state.source.forEach(feed => {
+    fetchArticles(feed)
+      .then(articles => {
+        state.articles.push(articles)
+        state.articles = [].concat(...state.articles)
+        state.popupHidden = true
+      })
+      .then(() => console.log(state))
+      .then(() => render(app, state))
+      .catch(err => {
+        console.log(err)
+        window.alert('Feed not available. Try another one.')
+      })
+  })
 })
 
 // When the user selects a source from the dropdown menu on the header, replace
@@ -220,7 +272,7 @@ delegate('#app', 'click', '#source li', event => {
     .then(articles => {
       state.articles = articles
       state.popupHidden = true
-     })
+    })
     .then(() => console.log(state))
     .then(() => render(app, state))
     .catch(err => {
@@ -250,3 +302,25 @@ delegate("#app", 'keydown', '#search input', event => {
 // <section id="main" class="container">
 //   // ${state.loading ? renderLoader() : renderArticles(data.articles)}
 // </section>
+//time=end of link -date only
+// function fetchLadArticles() {
+//   return fetchUrl(ladbible)
+//     .then(res => res.json())
+//     .then(data => {
+//       console.log(data)
+//       return data.articles.map(article => {
+//         return {
+//           image: article.urlToImage,
+//           title: article.title,
+//           theme: 'N/A',
+//           impressions: 'N/A',
+//           summary: article.description,
+//           link: article.url
+//         }
+//       })
+//     })
+//     .catch(err => {
+//       console.log('Error: ', err)
+//       window.alert('Feed corrupted. Try another one.')
+//     })
+// }
