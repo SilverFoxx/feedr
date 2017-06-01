@@ -9,7 +9,6 @@ const app = document.querySelector('#app')
 let mysteryNumber = 0
 
 const state = {
-  // source: 'mashable',
   source: ['mashable', 'digg', 'wtf'],
   articles: [{
     image: '',
@@ -137,7 +136,7 @@ state.source.forEach(feed => {
   fetchArticles(feed)
     .then(articles => {
       state.articles.push(articles)
-      //       let myNewArray = state.articles.reduce(function(prev, curr) {
+      //   let myNewArray = state.articles.reduce(function(prev, curr) {
       //   return prev.concat(curr);
       // });
       state.articles = [].concat(...state.articles)
@@ -218,7 +217,6 @@ delegate('#app', 'click', '.articleContent a', event => {
       mysteryNumber = state.articles.indexOf(element)
     }
   })
-  //console.log(mysteryNumber)  //title
   state.loader = false
   state.popupHidden = false
   render(app, state)
@@ -248,7 +246,6 @@ delegate('#app', 'click', 'section.container h1', event => {
         state.articles = [].concat(...state.articles)
         state.popupHidden = true
       })
-      .then(() => console.log(state))
       .then(() => render(app, state))
       .catch(err => {
         console.log(err)
@@ -273,7 +270,6 @@ delegate('#app', 'click', '#source li', event => {
       state.articles = articles
       state.popupHidden = true
     })
-    .then(() => console.log(state))
     .then(() => render(app, state))
     .catch(err => {
       console.log(err)
@@ -296,31 +292,3 @@ delegate("#app", 'keydown', '#search input', event => {
     render(app, state)
   }
 })
-
-//class="loader ${state.loading ? '' : 'hidden'}
-//if state.loading call loading function
-// <section id="main" class="container">
-//   // ${state.loading ? renderLoader() : renderArticles(data.articles)}
-// </section>
-//time=end of link -date only
-// function fetchLadArticles() {
-//   return fetchUrl(ladbible)
-//     .then(res => res.json())
-//     .then(data => {
-//       console.log(data)
-//       return data.articles.map(article => {
-//         return {
-//           image: article.urlToImage,
-//           title: article.title,
-//           theme: 'N/A',
-//           impressions: 'N/A',
-//           summary: article.description,
-//           link: article.url
-//         }
-//       })
-//     })
-//     .catch(err => {
-//       console.log('Error: ', err)
-//       window.alert('Feed corrupted. Try another one.')
-//     })
-// }
